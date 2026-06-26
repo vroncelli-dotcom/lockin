@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>LockIn</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body,#app{height:100%;width:100%}
+    body{font-family:Inter,sans-serif;background:#FAFAF9;-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+    *{-webkit-tap-highlight-color:transparent}
+    button{cursor:pointer;font-family:Inter,sans-serif}
+    input,textarea{font-family:Inter,sans-serif}
+  </style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+import { h, render, Component } from 'https://esm.sh/preact@10.19.2';
+import { useState, useRef, useEffect } from 'https://esm.sh/preact@10.19.2/hooks';
+import htm from 'https://esm.sh/htm@3.1.1';
+const html = htm.bind(h);
+
+// TOKENS
+const C = {
+  ground:"#FAFAF9", groundAlt:"#F4F3F1", rule:"#E8E6E2",
+  muted:"#9E9890", body:"#3D3A35", ink:"#0F0F0E",
+  coral:"#D95F3B", coralSoft:"#F9EDE8", coralBlush:"#FBE8E4", coralMist:"#FEF4F2",
+  slate:"#1E2D3D", slateAlt:"#253545",
+  white:"#FFFFFF", gold:"#D4A853",
+  teal:"#1E7F74", tealSoft:"#E6F4F2",
+  error:"#B83227",
+};
+
+const T = {
+  display:{fontFamily:"Inter,sans-serif",fontWeight:900,letterSpacing:"-0.04em",lineHeight:1.0},
+  heading:{fontFamily:"Inter,sans-serif",fontWeight:700,letterSpacing:"-0.02em",lineHeight:1.15},
+  subhead:{fontFamily:"Inter,sans-serif",fontWeight:600,letterSpacing:"-0.01em",lineHeight:1.3},
+  body:{fontFamily:"Inter,sans-serif",fontWeight:400,letterSpacing:"0",lineHeight:1.6},
+  label:{fontFamily:"Inter,sans-serif",fontWeight:600,letterSpacing:"0.08em",lineHeight:1,textTransform:"uppercase"},
+  caption:{fontFamily:"Inter,sans-serif",fontWeight:400,letterSpacing:"0.01em",lineHeight:1.4},
+};
+
+// DATA
+const COMPANIES = [
+  {id:1,name:"Pinnacle Mortgage",type:"Independent Broker",location:"Chicago, IL",remote:"Hybrid",comp:"75/25 split",volume:"$180M / yr",culture:"We move fast and take care of our own. No micromanaging — results, support, and real celebration when you win.",hiring:["Loan Officers","Processors","LOAs"],google:4.8,googleCount:112,topReview:"Best culture I've ever worked in.",bg:"#1E2D3D",founded:"2009"},
+  {id:2,name:"Clearwater Lending",type:"Retail Lender",location:"Remote — 32 states",remote:"Remote",comp:"Base + commission",volume:"$600M / yr",culture:"Fully distributed across 32 states. We invest in tech so you close more with less friction.",hiring:["Underwriters","Loan Officers"],google:4.6,googleCount:203,topReview:"Three years remote here and never felt more supported.",bg:"#1A1A1A",founded:"2015"},
+  {id:3,name:"Heritage Home Loans",type:"Credit Union",location:"Phoenix, AZ",remote:"In-office",comp:"Salary + incentive",volume:"$220M / yr",culture:"Serving our community for 40 years. If you want roots and real job security — this is it.",hiring:["Processors","Underwriters","Admin"],google:4.9,googleCount:67,topReview:"Been here 11 years. Never felt like just a number.",bg:"#2C1810",founded:"1983"},
+];
+
+const CANDIDATES = [
+  {id:"c1",alias:"Senior LO, Midwest",role:"Loan Officer",exp:"9 yrs",volume:"$4.1M / mo",comp:"80%+ split",style:"Remote",bio:"Built my book entirely on referrals. Looking for a culture that values relationships.",skills:["FHA","VA","Jumbo","Purchase"],google:4.9,googleCount:84,topReview:"Made buying our first home feel effortless.",status:"interested"},
+  {id:"c2",alias:"Processor, Southeast",role:"Processor",exp:"6 yrs",volume:"120 files / mo",comp:"Salary",style:"Hybrid",bio:"Detail-oriented processor with FHA and VA experience. Love a fast-paced team.",skills:["FHA","VA","Encompass"],google:4.7,googleCount:32,topReview:"Organized, fast, always communicates proactively.",status:"new"},
+  {id:"c3",alias:"Underwriter, Remote",role:"Underwriter",exp:"11 yrs",volume:"25 files / day",comp:"$120K+",style:"Remote",bio:"Senior DE underwriter. FHA, VA, USDA, Jumbo sign-off authority.",skills:["DE Underwriter","FHA","VA","USDA"],google:5.0,googleCount:18,topReview:"Most thorough UW I have ever worked with.",status:"interview"},
+];
+
+const TIME_SLOTS = ["Mon Jun 30 - 9:00 AM","Mon Jun 30 - 11:00 AM","Mon Jun 30 - 2:00 PM","Tue Jul 1 - 10:00 AM","Tue Jul 1 - 1:00 PM","Wed Jul 2 - 9:00 AM","Wed Jul 2 - 11:30 AM"];
+
+const MSGS = [
+  {from:"them",text:"Hi! We loved your profile. Your referral-based approach aligns perfectly with how we operate.",time:"9:12 AM"},
+  {from:"me",text:"Thank you. I believe relationships are the foundation of this business. Tell me more about your culture?",time:"9:18 AM"},
+  {from:"them",text:"We genuinely celebrate each other's wins. No cutthroat competition. Would love to connect on a call.",time:"9:24 AM"},
+];
+
+const NEWS = [
+  {id:"n1",source:"HousingWire",time:"2h ago",headline:"Mortgage applications rise 3.2% as rates tick down for second straight week",category:"Rates"},
+  {id:"n2",source:"The Mortgage Note",time:"4h ago",headline:"Wholesale channel sees strongest Q2 since 2021 as brokers gain market share",category:"Wholesale"},
+  {id:"n3",source:"NMP",time:"6h ago",headline:"CFPB signals new guidance on trigger leads — what LOs need to know now",category:"Regulation"},
+  {id:"n4",source:"MPA",time:"8h ago",headline:"Top producing LOs share the tech stack driving their 2024 numbers",category:"Technology"},
+  {id:"n5",source:"HousingWire",time:"1d ago",headline:"Purchase market finally shows signs of life in key metros",category:"Market"},
+];
+
+const POSTS = [
+  {id:"p1",author:"Senior LO, Texas",role:"LO, 12 yrs",time:"1h ago",category:"Win",text:"Just accepted an offer at an incredible broker shop after 6 months at a company that did not value their people. LockIn made the whole process feel human again. If you are on the fence about making a move — do it.",likes:47,replies:12,liked:false},
+  {id:"p2",author:"Processor, Southeast",role:"Processor, 6 yrs",time:"3h ago",category:"Industry",text:"Anyone else noticing comp offers getting more competitive lately? Three companies reached out this month offering splits I have not seen since 2021.",likes:31,replies:8,liked:false},
+  {id:"p3",author:"Branch Manager, Midwest",role:"Branch Mgr, 14 yrs",time:"5h ago",category:"Advice",text:"For all the LOs thinking about going broker — the biggest thing nobody tells you is how much better the borrower experience is. It changed why I come to work.",likes:89,replies:24,liked:false},
+];
+
+// SHARED UI
+const Rule = () => html`<div style=${{height:1,background:C.rule}}></div>`;
+
+const Lbl = ({children,color}) => html`<div style=${{...T.label,fontSize:10,color:color||C.muted,marginBottom:6}}>${children}</div>`;
+
+function PrimaryBtn({children,onClick,disabled,dark}) {
+  return html`<button onClick=${onClick} disabled=${disabled} style=${{width:"100%",padding:"15px 20px",borderRadius:2,background:disabled?C.rule:dark?C.white:C.coral,color:disabled?C.muted:dark?C.coral:C.white,border:"none",...T.subhead,fontSize:14,opacity:disabled?0.5:1}}>${children}</button>`;
+}
+
+function GhostBtn({children,onClick}) {
+  return html`<button onClick=${onClick} style=${{width:"100%",padding:"14px 20px",borderRadius:2,background:"transparent",color:C.body,border:"1px solid "+C.rule,...T.subhead,fontSize:14}}>${children}</button>`;
+}
+
+// BOTTOM NAV
+function SeekerNav({screen,setScreen,matchCount}) {
+  const items = [{id:"swipe",label:"Discover"},{id:"matches",label:matchCount?"Matches ("+matchCount+")":"Matches"},{id:"community",label:"Community"},{id:"profile",label:"Profile"}];
+  return html`<div style=${{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:390,background:C.white,borderTop:"1px solid "+C.rule,display:"flex",zIndex:50}}>
+    ${items.map(item => html`<button key=${item.id} onClick=${()=>setScreen(item.id)} style=${{flex:1,padding:"13px 4px 22px",background:"none",border:"none",...T.label,fontSize:9,color:screen===item.id?C.coral:C.muted,borderTop:screen===item.id?"2px solid "+C.coral:"2px solid transparent"}}>${item.label}</button>`)}
+  </div>`;
+}
+
+function CompanyNav({screen,setScreen}) {
+  const items = [{id:"co-dashboard",label:"Dashboard"},{id:"co-browse",label:"Browse"},{id:"co-profile",label:"Company"}];
+  return html`<div style=${{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:390,background:C.white,borderTop:"1px solid "+C.rule,display:"flex",zIndex:50}}>
+    ${items.map(item => html`<button key=${item.id} onClick=${()=>setScreen(item.id)} style=${{flex:1,padding:"13px 4px 22px",background:"none",border:"none",...T.label,fontSize:9,color:screen===item.id?C.coral:C.muted,borderTop:screen===item.id?"2px solid "+C.coral:"2px solid transparent"}}>${item.label}</button>`)}
+  </div>`;
+}
+
+// HOME
+function HomeScreen({setScreen,setRole}) {
+  return html`<div style=${{minHeight:"100vh",background:C.slate,display:"flex",flexDirection:"column",maxWidth:390,margin:"0 auto"}}>
+    <div style=${{padding:"52px 32px 0",display:"flex",alignItems:"center",gap:10}}>
+      <div style=${{width:24,height:24,background:C.coral,borderRadius:1}}></div>
+      <div style=${{...T.label,fontSize:13,color:C.white,letterSpacing:"0.12em"}}>LOCKIN</div>
+    </div>
+    <div style=${{flex:1,display:"flex",flexDirection:"column",justifyContent:"flex-end",padding:"0 32px 52px"}}>
+      <div style=${{...T.label,fontSize:10,color:"rgba(255,255,255,.35)",marginBottom:16}}>Mortgage Careers</div>
+      <div style=${{...T.display,fontSize:52,color:C.white,lineHeight:.92,marginBottom:20}}>Lock in your<br/>next chapter.</div>
+      <p style=${{...T.body,fontSize:15,color:"rgba(255,255,255,.55)",lineHeight:1.65,marginBottom:48}}>Find a mortgage career that actually makes you happy — and keeps you in the industry you love.</p>
+      <div style=${{display:"flex",flexDirection:"column",gap:10}}>
+        <button onClick=${()=>{setRole("seeker");setScreen("seeker-onboard");}} style=${{width:"100%",padding:"16px",background:C.coral,color:C.white,border:"none",borderRadius:2,...T.subhead,fontSize:15}}>I'm looking for a new role</button>
+        <button onClick=${()=>{setRole("company");setScreen("company-onboard");}} style=${{width:"100%",padding:"15px",background:"transparent",color:"rgba(255,255,255,.6)",border:"1px solid rgba(255,255,255,.2)",borderRadius:2,...T.subhead,fontSize:15}}>I'm hiring mortgage talent</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// SEEKER ONBOARD
+function SeekerOnboard({setScreen,anonMode,setAnonMode}) {
+  return html`<div style=${{minHeight:"100vh",background:C.ground,maxWidth:390,margin:"0 auto",padding:"52px 24px 40px",display:"flex",flexDirection:"column"}}>
+    <div style=${{...T.label,fontSize:10,color:C.coral,marginBottom:12}}>Privacy</div>
+    <div style=${{...T.display,fontSize:36,color:C.ink,marginBottom:8,lineHeight:1}}>Your terms,<br/>your reveal.</div>
+    <p style=${{...T.body,fontSize:14,color:C.body,lineHeight:1.7,marginBottom:40}}>In mortgage, everyone knows everyone. Choose how visible you want to be before you start.</p>
+    <div style=${{flex:1}}>
+      ${[{on:true,title:"Anonymity Mode",sub:"Companies see your experience and skills — not your name or employer."},{on:false,title:"Public Profile",sub:"Your full profile is visible to any company browsing on LockIn."}].map(opt => html`
+        <div key=${opt.title} onClick=${()=>setAnonMode(opt.on)} style=${{padding:"20px 0",cursor:"pointer",borderBottom:"1px solid "+C.rule,display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16}}>
+          <div style=${{flex:1}}>
+            <div style=${{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+              <div style=${{width:16,height:16,borderRadius:"50%",border:"2px solid "+(anonMode===opt.on?C.coral:C.rule),display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                ${anonMode===opt.on?html`<div style=${{width:7,height:7,borderRadius:"50%",background:C.coral}}></div>`:""}
+              </div>
+              <div style=${{...T.subhead,fontSize:15,color:C.ink}}>${opt.title}</div>
+            </div>
+            <div style=${{...T.body,fontSize:13,color:C.body,lineHeight:1.5,paddingLeft:26}}>${opt.sub}</div>
+          </div>
+        </div>
+      `)}
+    </div>
+    <div style=${{marginTop:32}}><${PrimaryBtn} onClick=${()=>setScreen("swipe")}>Start discovering</${PrimaryBtn}></div>
+  </div>`;
+}
+
+// SWIPE CARD
+function SwipeCard({co,onSwipe,isTop}) {
+  const [dragX,setDragX] = useState(0);
+  const [dragging,setDragging] = useState(false);
+  const [tab,setTab] = useState("story");
+  const startX = useRef(0);
+  const down = x => {setDragging(true);startX.current=x;};
+  const move = x => {if(dragging)setDragX(x-startX.current);};
+  const up = () => {
+    if(!dragging)return;setDragging(false);
+    if(dragX>80)onSwipe("right");else if(dragX<-80)onSwipe("left");else setDragX(0);
+  };
+  return html`<div
+    onMouseDown=${e=>down(e.clientX)} onMouseMove=${e=>move(e.clientX)} onMouseUp=${up} onMouseLeave=${up}
+    onTouchStart=${e=>down(e.touches[0].clientX)} onTouchMove=${e=>move(e.touches[0].clientX)} onTouchEnd=${up}
+    style=${{position:"absolute",width:"100%",height:"100%",
+      transform:"translateX("+(isTop?dragX:0)+"px) rotate("+(isTop?dragX*.035:0)+"deg) scale("+(isTop?1:.97)+")",
+      transition:dragging?"none":"transform .3s cubic-bezier(.34,1.56,.64,1)",
+      opacity:isTop?1:.85,cursor:isTop?"grab":"default",userSelect:"none",zIndex:isTop?10:5}}>
+    ${isTop&&dragX>30?html`<div style=${{position:"absolute",top:22,left:18,zIndex:20,border:"2px solid "+C.teal,color:C.teal,padding:"4px 14px",borderRadius:2,...T.label,fontSize:13,background:C.white,opacity:Math.min(dragX/80,1)}}>INTERESTED</div>`:""}
+    ${isTop&&dragX<-30?html`<div style=${{position:"absolute",top:22,right:18,zIndex:20,border:"2px solid "+C.error,color:C.error,padding:"4px 14px",borderRadius:2,...T.label,fontSize:13,background:C.white,opacity:Math.min(-dragX/80,1)}}>PASS</div>`:""}
+    <div style=${{width:"100%",height:"100%",background:C.white,boxShadow:"0 4px 40px rgba(0,0,0,.12)",overflow:"hidden",display:"flex",flexDirection:"column"}}>
+      <div style=${{background:co.bg,padding:"32px 24px 24px",flexShrink:0,minHeight:190,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+        <div style=${{...T.label,fontSize:10,color:"rgba(255,255,255,.45)",marginBottom:10}}>${co.type.toUpperCase()} - ${co.location.toUpperCase()}</div>
+        <div style=${{...T.display,fontSize:36,color:C.white,marginBottom:8,lineHeight:.95}}>${co.name}</div>
+        <div style=${{display:"flex",gap:10}}>
+          <div style=${{...T.label,fontSize:10,color:"rgba(255,255,255,.5)"}}>${co.remote.toUpperCase()}</div>
+          <div style=${{...T.label,fontSize:10,color:"rgba(255,255,255,.5)"}}>EST. ${co.founded}</div>
+        </div>
+        <div style=${{display:"flex",gap:6,marginTop:12,flexWrap:"wrap"}}>
+          ${co.hiring.map(r=>html`<div key=${r} style=${{border:"1px solid rgba(255,255,255,.25)",color:"rgba(255,255,255,.8)",padding:"4px 10px",borderRadius:1,...T.label,fontSize:9}}>${r.toUpperCase()}</div>`)}
+        </div>
+      </div>
+      <div style=${{display:"flex",borderBottom:"1px solid "+C.rule,background:C.white,flexShrink:0}}>
+        ${[{id:"story",label:"Story"},{id:"comp",label:"Comp"},{id:"pulse",label:"Pulse"}].map(t=>html`
+          <button key=${t.id} onClick=${e=>{e.stopPropagation();setTab(t.id);}} style=${{flex:1,padding:"11px 4px",background:"none",border:"none",...T.label,fontSize:10,color:tab===t.id?C.ink:C.muted,borderBottom:tab===t.id?"2px solid "+C.coral:"2px solid transparent"}}>${t.label}</button>
+        `)}
+      </div>
+      <div style=${{flex:1,overflowY:"auto",padding:"18px 22px",display:"flex",flexDirection:"column",gap:16}}>
+        ${tab==="story"?html`
+          <div>
+            <${Lbl}>Client Reviews</${Lbl}>
+            <div style=${{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+              <span style=${{...T.label,fontSize:10,color:C.muted,minWidth:100}}>Google</span>
+              <span style=${{color:C.gold,fontSize:12}}>${"★".repeat(Math.round(co.google))}</span>
+              <span style=${{...T.subhead,fontSize:12,color:C.ink}}>${co.google}</span>
+              <span style=${{...T.caption,fontSize:11,color:C.muted}}>(${co.googleCount})</span>
+            </div>
+            <div style=${{paddingTop:10,borderTop:"1px solid "+C.rule,marginTop:6}}>
+              <p style=${{...T.body,fontSize:12,color:C.body,fontStyle:"italic"}}>"${co.topReview}"</p>
+            </div>
+          </div>
+          <${Rule}/>
+          <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            ${[["Comp",co.comp],["Volume",co.volume],["Style",co.remote],["Size","25-100"]].map(([l,v])=>html`
+              <div key=${l}>
+                <${Lbl}>${l}</${Lbl}>
+                <div style=${{...T.subhead,fontSize:13,color:C.ink}}>${v}</div>
+              </div>
+            `)}
+          </div>
+          <${Rule}/>
+          <div>
+            <${Lbl}>Culture</${Lbl}>
+            <p style=${{...T.body,fontSize:13,color:C.body}}>${co.culture}</p>
+          </div>
+        `:""}
+        ${tab==="comp"?html`
+          <div style=${{background:co.bg,padding:"18px",margin:"-18px -22px 0"}}>
+            <div style=${{...T.label,fontSize:9,color:"rgba(255,255,255,.4)",marginBottom:8}}>AI COMP SUMMARY</div>
+            <p style=${{...T.body,fontSize:13,color:C.white,lineHeight:1.7}}>Keep ${co.comp.split(" ")[0]} of every deal you close with zero desk fees. Hit $3M in a month and unlock a bonus. No minimums your first 90 days.</p>
+          </div>
+          <div>
+            <${Lbl}>Compensation</${Lbl}>
+            <div style=${{...T.subhead,fontSize:16,color:C.ink}}>${co.comp}</div>
+          </div>
+          <${Rule}/>
+          <div>
+            <${Lbl}>Volume</${Lbl}>
+            <div style=${{...T.subhead,fontSize:16,color:C.ink}}>${co.volume}</div>
+          </div>
+          <${Rule}/>
+          <p style=${{...T.caption,fontSize:12,color:C.muted}}>Full comp agreement shared after a mutual match.</p>
+        `:""}
+        ${tab==="pulse"?html`
+          <div>
+            <${Lbl}>AI Social Pulse - Last 90 days</${Lbl}>
+            <p style=${{...T.caption,fontSize:12,color:C.muted,marginBottom:16}}>Scanned from their LinkedIn and social profiles.</p>
+            ${["Just celebrated Sarah hitting $2M in a single month!","Ranked top broker in Illinois for the third year running.","Volunteer day at the food bank last Saturday. This is who we are."].map((post,i)=>html`
+              <div key=${i} style=${{paddingLeft:14,borderLeft:"2px solid "+(i===0?C.coral:C.rule),marginBottom:12}}>
+                <p style=${{...T.body,fontSize:13,color:C.body}}>${post}</p>
+              </div>
+            `)}
+          </div>
+        `:""}
+      </div>
+    </div>
+  </div>`;
+}
+
+// CANDIDATE CARD
+function CandidateCard({c,onSwipe,isTop}) {
+  const [dragX,setDragX] = useState(0);
+  const [dragging,setDragging] = useState(false);
+  const startX = useRef(0);
+  const down = x => {setDragging(true);startX.current=x;};
+  const move = x => {if(dragging)setDragX(x-startX.current);};
+  const up = () => {
+    if(!dragging)return;setDragging(false);
+    if(dragX>80)onSwipe("right",c);else if(dragX<-80)onSwipe("left",c);else setDragX(0);
+  };
+  return html`<div
+    onMouseDown=${e=>down(e.clientX)} onMouseMove=${e=>move(e.clientX)} onMouseUp=${up} onMouseLeave=${up}
+    onTouchStart=${e=>down(e.touches[0].clientX)} onTouchMove=${e=>move(e.touches[0].clientX)} onTouchEnd=${up}
+    style=${{position:"absolute",width:"100%",height:"100%",
+      transform:"translateX("+(isTop?dragX:0)+"px) rotate("+(isTop?dragX*.035:0)+"deg) scale("+(isTop?1:.97)+")",
+      transition:dragging?"none":"transform .3s cubic-bezier(.34,1.56,.64,1)",
+      opacity:isTop?1:.85,cursor:isTop?"grab":"default",userSelect:"none",zIndex:isTop?10:5}}>
+    ${isTop&&dragX>30?html`<div style=${{position:"absolute",top:22,left:18,zIndex:20,border:"2px solid "+C.teal,color:C.teal,padding:"4px 14px",borderRadius:2,...T.label,fontSize:13,background:C.white,opacity:Math.min(dragX/80,1)}}>INTERESTED</div>`:""}
+    ${isTop&&dragX<-30?html`<div style=${{position:"absolute",top:22,right:18,zIndex:20,border:"2px solid "+C.error,color:C.error,padding:"4px 14px",borderRadius:2,...T.label,fontSize:13,background:C.white,opacity:Math.min(-dragX/80,1)}}>PASS</div>`:""}
+    <div style=${{width:"100%",height:"100%",background:C.white,boxShadow:"0 4px 40px rgba(0,0,0,.12)",overflow:"hidden",display:"flex",flexDirection:"column"}}>
+      <div style=${{background:C.slate,padding:"28px 22px 20px",flexShrink:0}}>
+        <div style=${{...T.label,fontSize:10,color:"rgba(255,255,255,.4)",marginBottom:10}}>${c.role.toUpperCase()} - ${c.style.toUpperCase()}</div>
+        <div style=${{...T.display,fontSize:32,color:C.white,marginBottom:12,lineHeight:.95}}>${c.alias}</div>
+        <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+          ${[["Volume",c.volume],["Exp",c.exp],["Target",c.comp]].map(([l,v])=>html`
+            <div key=${l}>
+              <div style=${{...T.label,fontSize:9,color:"rgba(255,255,255,.35)"}}>${l}</div>
+              <div style=${{...T.subhead,fontSize:13,color:C.white}}>${v}</div>
+            </div>
+          `)}
+        </div>
+      </div>
+      <div style=${{flex:1,overflowY:"auto",padding:"18px 22px",display:"flex",flexDirection:"column",gap:14}}>
+        <div>
+          <${Lbl}>Their Story</${Lbl}>
+          <p style=${{...T.body,fontSize:13,color:C.body}}>${c.bio}</p>
+        </div>
+        <${Rule}/>
+        <div>
+          <${Lbl}>Client Reviews</${Lbl}>
+          <div style=${{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+            <span style=${{...T.label,fontSize:10,color:C.muted,minWidth:88}}>Google</span>
+            <span style=${{color:C.gold,fontSize:12}}>${"★".repeat(Math.round(c.google))}</span>
+            <span style=${{...T.subhead,fontSize:12,color:C.ink}}>${c.google}</span>
+            <span style=${{...T.caption,fontSize:11,color:C.muted}}>(${c.googleCount})</span>
+          </div>
+          <div style=${{paddingLeft:12,borderLeft:"2px solid "+C.coral}}>
+            <p style=${{...T.body,fontSize:12,color:C.body,fontStyle:"italic"}}>"${c.topReview}"</p>
+          </div>
+        </div>
+        <${Rule}/>
+        <div>
+          <${Lbl}>Specialties</${Lbl}>
+          <div style=${{display:"flex",flexWrap:"wrap",gap:6}}>
+            ${c.skills.map(s=>html`<div key=${s} style=${{border:"1px solid "+C.rule,padding:"5px 10px",borderRadius:1,...T.label,fontSize:9,color:C.body}}>${s}</div>`)}
+          </div>
+        </div>
+        <${Rule}/>
+        <div style=${{padding:"14px 16px",background:C.groundAlt,borderLeft:"3px solid "+C.rule}}>
+          <div style=${{...T.label,fontSize:10,color:C.muted,marginBottom:4}}>Anonymity Mode Active</div>
+          <p style=${{...T.caption,fontSize:12,color:C.muted}}>Name, photo, and LinkedIn revealed after a mutual match.</p>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// CHAT
+function ChatScreen({party,onBack,onSchedule,isCompany}) {
+  const [messages,setMessages] = useState(MSGS);
+  const [input,setInput] = useState("");
+  const bottomRef = useRef();
+  useEffect(()=>{if(bottomRef.current)bottomRef.current.scrollIntoView({behavior:"smooth"});},[messages]);
+  const send = () => {if(!input.trim())return;setMessages(m=>[...m,{from:"me",text:input.trim(),time:"Now"}]);setInput("");};
+  const name = isCompany?party.alias:party.name;
+  return html`<div style=${{display:"flex",flexDirection:"column",height:"100vh",maxWidth:390,margin:"0 auto",background:C.ground}}>
+    <div style=${{background:C.white,padding:"52px 20px 14px",display:"flex",alignItems:"center",gap:14,borderBottom:"1px solid "+C.rule}}>
+      <button onClick=${onBack} style=${{background:"none",border:"none",color:C.coral,fontSize:20,lineHeight:1,padding:"0 4px"}}>&#8592;</button>
+      <div style=${{flex:1}}>
+        <div style=${{...T.heading,fontSize:15,color:C.ink}}>${name}</div>
+        <div style=${{...T.label,fontSize:10,color:C.teal,marginTop:2}}>Online now</div>
+      </div>
+      <button onClick=${()=>onSchedule(party)} style=${{background:"none",border:"1px solid "+C.rule,borderRadius:2,padding:"8px 14px",...T.label,fontSize:10,color:C.ink}}>Schedule</button>
+    </div>
+    <div style=${{flex:1,overflowY:"auto",padding:"20px 16px",display:"flex",flexDirection:"column",gap:12}}>
+      <div style=${{textAlign:"center",...T.label,fontSize:10,color:C.muted,marginBottom:4}}>Today - Matched with ${name}</div>
+      ${messages.map((msg,i)=>html`
+        <div key=${i} style=${{display:"flex",justifyContent:msg.from==="me"?"flex-end":"flex-start"}}>
+          <div style=${{maxWidth:"78%"}}>
+            <div style=${{padding:"11px 15px",background:msg.from==="me"?C.coral:C.white,color:msg.from==="me"?C.white:C.ink,borderRadius:msg.from==="me"?"16px 16px 2px 16px":"16px 16px 16px 2px",...T.body,fontSize:14,lineHeight:1.5,boxShadow:msg.from==="me"?"none":"0 1px 8px rgba(0,0,0,.06)"}}>${msg.text}</div>
+            <div style=${{...T.caption,fontSize:10,color:C.muted,marginTop:4,textAlign:msg.from==="me"?"right":"left"}}>${msg.time}</div>
+          </div>
+        </div>
+      `)}
+      <div ref=${bottomRef}></div>
+    </div>
+    <div style=${{padding:"12px 16px 32px",background:C.white,borderTop:"1px solid "+C.rule,display:"flex",gap:10,alignItems:"flex-end"}}>
+      <input value=${input} onInput=${e=>setInput(e.target.value)} onKeyDown=${e=>e.key==="Enter"&&send()} placeholder="Type a message..."
+        style=${{flex:1,padding:"12px 0",background:"transparent",border:"none",borderBottom:"1px solid "+C.rule,...T.body,fontSize:14,color:C.ink,outline:"none"}} />
+      <button onClick=${send} disabled=${!input.trim()} style=${{width:40,height:40,borderRadius:"50%",background:input.trim()?C.coral:C.rule,border:"none",color:C.white,fontSize:16,flexShrink:0}}>&#8593;</button>
+    </div>
+  </div>`;
+}
+
+// SCHEDULE MODAL
+function ScheduleModal({party,onClose,onConfirm}) {
+  const [selected,setSelected] = useState(null);
+  const [done,setDone] = useState(false);
+  const name = party?.alias||party?.name||"them";
+  const confirm = () => {setDone(true);if(onConfirm)onConfirm({party,slot:selected});};
+  if(done)return html`<div style=${{position:"fixed",inset:0,background:"rgba(15,15,14,.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:24}}>
+    <div style=${{background:C.white,padding:"40px 32px",maxWidth:340,width:"100%",textAlign:"center"}}>
+      <div style=${{width:48,height:48,borderRadius:"50%",background:C.tealSoft,border:"2px solid "+C.teal,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px"}}><div style=${{width:18,height:18,borderRadius:"50%",background:C.teal}}></div></div>
+      <div style=${{...T.heading,fontSize:22,color:C.ink,marginBottom:8}}>Confirmed</div>
+      <p style=${{...T.body,fontSize:14,color:C.body,marginBottom:20,lineHeight:1.6}}>Your call with <strong>${name}</strong> is set for <strong>${selected}</strong>. A Zoom link has been sent to both of you.</p>
+      <${PrimaryBtn} onClick=${onClose}>Done</${PrimaryBtn}>
+    </div>
+  </div>`;
+  return html`<div style=${{position:"fixed",inset:0,background:"rgba(15,15,14,.85)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:200}}>
+    <div style=${{background:C.white,padding:"28px 24px 48px",width:"100%",maxWidth:390,maxHeight:"85vh",overflowY:"auto"}}>
+      <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <div style=${{...T.heading,fontSize:18,color:C.ink}}>Schedule Intro Call</div>
+        <button onClick=${onClose} style=${{background:"none",border:"none",color:C.muted,fontSize:22}}>&#215;</button>
+      </div>
+      <p style=${{...T.body,fontSize:13,color:C.body,marginBottom:20}}>Pick a time. <strong>${name}</strong> receives a Zoom invite automatically.</p>
+      <${Lbl}>Available times</${Lbl}>
+      <div style=${{display:"flex",flexDirection:"column",marginBottom:20}}>
+        ${TIME_SLOTS.map(slot=>html`
+          <div key=${slot} onClick=${()=>setSelected(slot)} style=${{padding:"14px 0",cursor:"pointer",borderBottom:"1px solid "+C.rule,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style=${{...T.body,fontSize:14,color:selected===slot?C.coral:C.ink,fontWeight:selected===slot?600:400}}>${slot}</span>
+            ${selected===slot?html`<span style=${{color:C.coral}}>&#10003;</span>`:""}
+          </div>
+        `)}
+      </div>
+      <${PrimaryBtn} onClick=${confirm} disabled=${!selected}>Confirm and send Zoom invite</${PrimaryBtn}>
+    </div>
+  </div>`;
+}
+
+// MATCH MODAL
+function MatchModal({party,onChat,onSchedule,onClose,isCompany,planTier,onUpgrade}) {
+  const name = isCompany?party.alias:party.name;
+  const locked = isCompany&&planTier==="free";
+  if(locked)return html`<div style=${{position:"fixed",inset:0,background:"rgba(15,15,14,.85)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:150}}>
+    <div style=${{background:C.white,padding:"32px 24px 48px",width:"100%",maxWidth:390}}>
+      <div style=${{...T.label,fontSize:10,color:C.coral,marginBottom:12}}>New Interest</div>
+      <div style=${{...T.display,fontSize:30,color:C.ink,marginBottom:8,lineHeight:1}}>Someone's interested.</div>
+      <p style=${{...T.body,fontSize:14,color:C.body,marginBottom:24,lineHeight:1.6}}><strong>${name}</strong> just expressed interest in your company. Upgrade to connect.</p>
+      <${PrimaryBtn} onClick=${()=>onUpgrade()}>View plans</${PrimaryBtn}>
+      <button onClick=${onClose} style=${{display:"block",width:"100%",marginTop:12,background:"none",border:"none",...T.caption,fontSize:13,color:C.muted,padding:8,textAlign:"center"}}>Maybe later</button>
+    </div>
+  </div>`;
+  return html`<div style=${{position:"fixed",inset:0,background:"rgba(15,15,14,.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:150,padding:24}}>
+    <div style=${{background:C.white,padding:"40px 32px",maxWidth:340,width:"100%",textAlign:"center"}}>
+      <div style=${{...T.label,fontSize:10,color:C.coral,marginBottom:12}}>Match</div>
+      <div style=${{...T.display,fontSize:32,color:C.ink,marginBottom:8,lineHeight:1}}>It's a match.</div>
+      <p style=${{...T.body,fontSize:14,color:C.body,marginBottom:24,lineHeight:1.6}}><strong>${name}</strong> ${isCompany?"is interested in your roles.":"is interested in your profile."}<br/><span style=${{...T.caption,fontSize:12,color:C.muted}}>Your identity stays private until you're ready.</span></p>
+      <div style=${{display:"flex",flexDirection:"column",gap:10}}>
+        <${PrimaryBtn} onClick=${()=>onChat(party)}>Start a conversation</${PrimaryBtn}>
+        <${GhostBtn} onClick=${()=>onSchedule(party)}>Schedule an intro call</${GhostBtn}>
+        <button onClick=${onClose} style=${{background:"none",border:"none",...T.caption,fontSize:13,color:C.muted,padding:8}}>Keep browsing</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// PRICING
+function PricingPage({onSelect,currentTier,onBack}) {
+  const [waitlist,setWaitlist] = useState("");
+  const [waitlistDone,setWaitlistDone] = useState(false);
+  const tiers = [
+    {id:"free",name:"Free",label:"$0",sub:"forever",desc:"Get discovered. See who is interested.",features:["Company profile","Appear in candidate search","See interest notifications"]},
+    {id:"growth",name:"Growth",label:"$9.99",sub:"per month",desc:"The full LockIn experience. Unlimited everything.",features:["Everything in Free","Unlimited connections","Unlimited messaging","Interview scheduling + Zoom","AI Comp Analyzer","Social Pulse scanning","Priority placement"],popular:true},
+    {id:"premium",name:"Premium",label:"Coming Soon",sub:"",desc:"Advanced tools for teams hiring at scale.",features:["Everything in Growth","Multi-seat access","Dedicated support","Custom reporting","API access"],soon:true},
+  ];
+  return html`<div style=${{minHeight:"100vh",background:C.ground,paddingBottom:60}}>
+    <div style=${{padding:"52px 24px 0",display:"flex",alignItems:"center",gap:16}}>
+      ${onBack?html`<button onClick=${onBack} style=${{background:"none",border:"none",color:C.coral,fontSize:20,padding:0}}>&#8592;</button>`:""}
+      <div style=${{...T.label,fontSize:10,color:C.muted}}>Pricing</div>
+    </div>
+    <div style=${{padding:"24px 24px 0"}}>
+      <div style=${{...T.label,fontSize:10,color:C.coral,marginBottom:10}}>Plans</div>
+      <div style=${{...T.display,fontSize:36,color:C.ink,marginBottom:8,lineHeight:1}}>Simple,<br/>honest pricing.</div>
+      <p style=${{...T.body,fontSize:14,color:C.body,marginBottom:40,lineHeight:1.6}}>Start free. Pay only when you're ready to connect. No credit card required to try.</p>
+      ${tiers.map((tier,i)=>html`
+        <div key=${tier.id} style=${{background:tier.popular?C.slate:C.ground,margin:tier.popular?"0 -24px":"0",padding:tier.popular?"28px 24px 32px":"0",borderTop:"1px solid "+C.rule,paddingTop:tier.popular?"28px":"24px",paddingBottom:tier.popular?"32px":"28px"}}>
+          ${tier.popular?html`<div style=${{...T.label,fontSize:9,color:C.coral,marginBottom:14}}>Most Popular</div>`:""}
+          <div style=${{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
+            <div style=${{flex:1}}>
+              <div style=${{...T.heading,fontSize:22,color:tier.popular?C.white:C.ink,marginBottom:4}}>${tier.name}</div>
+              <div style=${{...T.body,fontSize:13,color:tier.popular?"rgba(255,255,255,.6)":C.body,lineHeight:1.5}}>${tier.desc}</div>
+            </div>
+            <div style=${{textAlign:"right",flexShrink:0,marginLeft:16}}>
+              <div style=${{...T.display,fontSize:30,color:tier.popular?C.coral:(tier.soon?C.muted:C.ink),lineHeight:1}}>${tier.label}</div>
+              <div style=${{...T.label,fontSize:9,color:tier.popular?"rgba(255,255,255,.35)":C.muted,marginTop:3}}>${tier.sub.toUpperCase()}</div>
+            </div>
+          </div>
+          <div style=${{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
+            ${tier.features.map((f,j)=>html`
+              <div key=${j} style=${{display:"flex",alignItems:"center",gap:10}}>
+                <div style=${{width:16,height:16,borderRadius:"50%",background:j===0&&!tier.id==="free"?"rgba(217,95,59,.2)":"rgba(255,255,255,.08)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <div style=${{width:6,height:6,borderRadius:"50%",background:tier.popular?"rgba(255,255,255,.3)":C.muted}}></div>
+                </div>
+                <span style=${{...T.body,fontSize:13,color:tier.popular?"rgba(255,255,255,.7)":C.body}}>${f}</span>
+              </div>
+            `)}
+          </div>
+          ${tier.soon?html`
+            <div>
+              ${waitlistDone?html`
+                <div style=${{padding:"12px",background:C.tealSoft,textAlign:"center",borderRadius:2,border:"1px solid "+C.teal}}>
+                  <div style=${{...T.label,fontSize:10,color:C.teal}}>You're on the list.</div>
+                </div>
+              `:html`
+                <div style=${{display:"flex",gap:8}}>
+                  <input value=${waitlist} onInput=${e=>setWaitlist(e.target.value)} placeholder="your@email.com"
+                    style=${{flex:1,padding:"12px 0",background:"transparent",border:"none",borderBottom:"1px solid "+C.rule,...T.body,fontSize:13,color:C.ink,outline:"none"}} />
+                  <button onClick=${()=>{if(waitlist.includes("@"))setWaitlistDone(true);}} disabled=${!waitlist.includes("@")}
+                    style=${{padding:"10px 16px",background:"transparent",border:"1px solid "+C.rule,borderRadius:2,...T.label,fontSize:10,color:C.muted,opacity:waitlist.includes("@")?1:0.5}}>Notify me</button>
+                </div>
+              `}
+            </div>
+          `:currentTier===tier.id?html`
+            <div style=${{padding:"12px",background:tier.popular?"rgba(255,255,255,.1)":C.groundAlt,textAlign:"center",...T.label,fontSize:10,color:tier.popular?"rgba(255,255,255,.5)":C.muted}}>Current Plan</div>
+          `:html`
+            <button onClick=${()=>onSelect(tier)} style=${{width:"100%",padding:"13px",background:tier.popular?C.coral:"transparent",color:tier.popular?C.white:C.ink,border:tier.popular?"none":"1px solid "+C.rule,borderRadius:2,...T.label,fontSize:11,letterSpacing:"0.05em"}}>
+              ${tier.popular?"Start 14-Day Free Trial":"Get started"}
+            </button>
+          `}
+        </div>
+      `)}
+      <div style=${{padding:"24px 0",borderTop:"1px solid "+C.rule,marginTop:8}}>
+        <p style=${{...T.body,fontSize:13,color:C.body,lineHeight:1.7}}>A single bad hire costs mortgage companies <strong>$10,000-$50,000</strong> in lost production and turnover. One good hire from LockIn pays for years of Growth.</p>
+      </div>
+      ${[["Is the free trial really free?","Yes. No credit card required. 14 days of full Growth access. Cancel anytime."],["Do candidates pay?","Never. LockIn is always free for job seekers."],["What happens if I cancel?","Your profile stays live on the free tier. All existing conversations are preserved."]].map(([q,a])=>html`
+        <div key=${q} style=${{paddingTop:16,paddingBottom:16,borderBottom:"1px solid "+C.rule}}>
+          <div style=${{...T.subhead,fontSize:14,color:C.ink,marginBottom:6}}>${q}</div>
+          <div style=${{...T.body,fontSize:13,color:C.body}}>${a}</div>
+        </div>
+      `)}
+    </div>
+  </div>`;
+}
+
+// COMMUNITY
+function CommunityScreen({screen,setScreen,matchCount}) {
+  const [tab,setTab] = useState("feed");
+  const [posts,setPosts] = useState(POSTS);
+  const [compose,setCompose] = useState(false);
+  const [newPost,setNewPost] = useState("");
+  const [category,setCategory] = useState("All");
+  const cats = ["All","Win","Industry","Advice"];
+  const filtered = category==="All"?posts:posts.filter(p=>p.category===category);
+  const toggleLike = id => setPosts(prev=>prev.map(p=>p.id===id?{...p,liked:!p.liked,likes:p.liked?p.likes-1:p.likes+1}:p));
+  const submit = () => {
+    if(!newPost.trim())return;
+    setPosts(prev=>[{id:"new-"+Date.now(),author:"Senior LO, Midwest",role:"LO, 7 yrs",time:"Just now",category:"Industry",text:newPost.trim(),likes:0,replies:0,liked:false},...prev]);
+    setNewPost("");setCompose(false);
+  };
+  return html`<div style=${{paddingBottom:80,minHeight:"100vh",background:C.ground,maxWidth:390,margin:"0 auto"}}>
+    <div style=${{background:C.slate,padding:"52px 24px 0"}}>
+      <div style=${{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:20}}>
+        <div>
+          <div style=${{...T.label,fontSize:10,color:"rgba(255,255,255,.35)",marginBottom:8}}>Community</div>
+          <div style=${{...T.display,fontSize:32,color:C.white,lineHeight:1}}>The pulse<br/>of mortgage.</div>
+        </div>
+        ${tab==="feed"?html`<button onClick=${()=>setCompose(true)} style=${{padding:"10px 16px",background:C.coral,border:"none",borderRadius:2,...T.label,fontSize:10,color:C.white,flexShrink:0,marginBottom:4}}>+ Post</button>`:""}
+      </div>
+      <div style=${{display:"flex"}}>
+        ${[{id:"feed",label:"Community"},{id:"news",label:"Industry News"}].map(t=>html`
+          <button key=${t.id} onClick=${()=>setTab(t.id)} style=${{padding:"12px 20px 14px",background:"none",border:"none",...T.label,fontSize:10,color:tab===t.id?C.white:"rgba(255,255,255,.35)",borderBottom:tab===t.id?"2px solid "+C.coral:"2px solid transparent"}}>${t.label}</button>
+        `)}
+      </div>
+    </div>
+    ${tab==="feed"?html`
+      <div>
+        <div style=${{padding:"16px 24px",borderBottom:"1px solid "+C.rule,display:"flex",gap:8,overflowX:"auto"}}>
+          ${cats.map(cat=>html`<button key=${cat} onClick=${()=>setCategory(cat)} style=${{padding:"7px 14px",background:"transparent",flexShrink:0,border:"1px solid "+(category===cat?C.ink:C.rule),borderRadius:2,...T.label,fontSize:9,color:category===cat?C.ink:C.muted}}>${cat.toUpperCase()}</button>`)}
+        </div>
+        ${filtered.map(post=>html`
+          <div key=${post.id} style=${{padding:"20px 24px",borderBottom:"1px solid "+C.rule}}>
+            <div style=${{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+              <div style=${{display:"flex",gap:10,alignItems:"center"}}>
+                <div style=${{width:36,height:36,borderRadius:"50%",background:C.slate,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <div style=${{...T.label,fontSize:11,color:C.white}}>${post.author.split(",")[0].split(" ").map(w=>w[0]).join("").slice(0,2)}</div>
+                </div>
+                <div>
+                  <div style=${{...T.subhead,fontSize:13,color:C.ink}}>${post.author}</div>
+                  <div style=${{...T.caption,fontSize:11,color:C.muted}}>${post.role} - ${post.time}</div>
+                </div>
+              </div>
+              <div style=${{...T.label,fontSize:9,color:post.category==="Win"?C.coral:post.category==="Advice"?C.teal:C.muted,background:post.category==="Win"?C.coralSoft:post.category==="Advice"?C.tealSoft:C.groundAlt,padding:"3px 9px",borderRadius:1,flexShrink:0,marginLeft:8}}>${post.category.toUpperCase()}</div>
+            </div>
+            <p style=${{...T.body,fontSize:14,color:C.body,lineHeight:1.65,marginBottom:14}}>${post.text}</p>
+            <div style=${{display:"flex",alignItems:"center",gap:20}}>
+              <button onClick=${()=>toggleLike(post.id)} style=${{background:"none",border:"none",display:"flex",alignItems:"center",gap:6,padding:0}}>
+                <span style=${{fontSize:16,color:post.liked?C.coral:C.muted}}>${post.liked?"&#9829;":"&#9825;"}</span>
+                <span style=${{...T.label,fontSize:10,color:post.liked?C.coral:C.muted}}>${post.likes}</span>
+              </button>
+              <span style=${{...T.label,fontSize:10,color:C.muted}}>${post.replies} replies</span>
+            </div>
+          </div>
+        `)}
+      </div>
+    `:""}
+    ${tab==="news"?html`
+      <div>
+        ${NEWS.map(a=>html`
+          <div key=${a.id} style=${{padding:"20px 24px",borderBottom:"1px solid "+C.rule}}>
+            <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <div style=${{display:"flex",alignItems:"center",gap:8}}>
+                <div style=${{...T.label,fontSize:9,color:C.coral}}>${a.source.toUpperCase()}</div>
+                <div style=${{width:3,height:3,borderRadius:"50%",background:C.rule}}></div>
+                <div style=${{...T.label,fontSize:9,color:C.muted}}>${a.time.toUpperCase()}</div>
+              </div>
+              <div style=${{...T.label,fontSize:9,color:C.muted,background:C.groundAlt,padding:"3px 9px",borderRadius:1}}>${a.category.toUpperCase()}</div>
+            </div>
+            <div style=${{...T.heading,fontSize:15,color:C.ink,lineHeight:1.3,marginBottom:10}}>${a.headline}</div>
+            <div style=${{...T.label,fontSize:10,color:C.coral}}>Read article &#8594;</div>
+          </div>
+        `)}
+      </div>
+    `:""}
+    ${compose?html`
+      <div style=${{position:"fixed",inset:0,background:"rgba(15,15,14,.85)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:200}}>
+        <div style=${{background:C.white,padding:"28px 24px 48px",width:"100%",maxWidth:390}}>
+          <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+            <div style=${{...T.heading,fontSize:18,color:C.ink}}>Share with the community</div>
+            <button onClick=${()=>setCompose(false)} style=${{background:"none",border:"none",color:C.muted,fontSize:22}}>&#215;</button>
+          </div>
+          <textarea value=${newPost} onInput=${e=>setNewPost(e.target.value)} placeholder="What's on your mind? Share a win, ask a question..." rows=${5}
+            style=${{width:"100%",padding:"0",background:"transparent",border:"none",borderBottom:"1px solid "+C.rule,...T.body,fontSize:14,color:C.ink,outline:"none",resize:"none",lineHeight:1.6,boxSizing:"border-box",marginBottom:20}}></textarea>
+          <${PrimaryBtn} onClick=${submit} disabled=${!newPost.trim()}>Post to Community</${PrimaryBtn}>
+        </div>
+      </div>
+    `:""}
+    <${SeekerNav} screen=${screen} setScreen=${setScreen} matchCount=${matchCount}/>
+  </div>`;
+}
+
+// COMPANY ONBOARD
+function CompanyOnboard({setScreen,onSelectTier}) {
+  const [step,setStep] = useState("intro");
+  const [form,setForm] = useState({name:"",type:"Independent Broker",remote:"Hybrid",culture:"",hiring:[]});
+  const hiringOpts = ["Loan Officers","LOAs","Processors","Underwriters","Branch Managers","Compliance","Admin"];
+  const toggle = r => setForm(f=>({...f,hiring:f.hiring.includes(r)?f.hiring.filter(x=>x!==r):[...f.hiring,r]}));
+  if(step==="intro")return html`<div style=${{minHeight:"100vh",background:C.ground,maxWidth:390,margin:"0 auto",padding:"52px 24px 40px",display:"flex",flexDirection:"column"}}>
+    <div style=${{...T.label,fontSize:10,color:C.coral,marginBottom:12}}>For Companies</div>
+    <div style=${{...T.display,fontSize:36,color:C.ink,marginBottom:8,lineHeight:1}}>Find people<br/>who stay.</div>
+    <p style=${{...T.body,fontSize:14,color:C.body,lineHeight:1.7,marginBottom:40}}>The best candidates evaluate you as carefully as you evaluate them.</p>
+    <div style=${{display:"flex",flexDirection:"column",gap:0}}>
+      ${["Create your company profile for free","Get discovered by verified mortgage professionals","Upgrade when you're ready to connect"].map((item,i)=>html`
+        <div key=${i} style=${{padding:"16px 0",borderBottom:"1px solid "+C.rule,display:"flex",alignItems:"center",gap:14}}>
+          <div style=${{width:28,height:28,border:"1px solid "+C.rule,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <div style=${{...T.label,fontSize:11,color:C.muted}}>${i+1}</div>
+          </div>
+          <div style=${{...T.body,fontSize:14,color:C.body}}>${item}</div>
+        </div>
+      `)}
+    </div>
+    <div style=${{marginTop:"auto",paddingTop:32}}><${PrimaryBtn} onClick=${()=>setStep("build")}>Build your profile</${PrimaryBtn}></div>
+  </div>`;
+  if(step==="build")return html`<div style=${{minHeight:"100vh",background:C.ground,maxWidth:390,margin:"0 auto",padding:"52px 24px 120px"}}>
+    <div style=${{...T.label,fontSize:10,color:C.coral,marginBottom:12}}>Company Profile</div>
+    <div style=${{...T.display,fontSize:30,color:C.ink,marginBottom:32,lineHeight:1}}>Tell your<br/>story.</div>
+    <div style=${{display:"flex",flexDirection:"column",gap:28}}>
+      <div>
+        <${Lbl}>Company name</${Lbl}>
+        <input value=${form.name} onInput=${e=>setForm(f=>({...f,name:e.target.value}))} placeholder="e.g. Pinnacle Mortgage Group"
+          style=${{width:"100%",padding:"13px 0",background:"transparent",border:"none",borderBottom:"1px solid "+C.rule,...T.body,fontSize:14,color:C.ink,outline:"none"}} />
+      </div>
+      <div>
+        <${Lbl}>Company type</${Lbl}>
+        <div style=${{display:"flex",flexWrap:"wrap",gap:8,marginTop:4}}>
+          ${["Independent Broker","Retail Lender","Credit Union","Bank","IMB"].map(t=>html`
+            <button key=${t} onClick=${()=>setForm(f=>({...f,type:t}))} style=${{padding:"8px 14px",background:"transparent",border:"1px solid "+(form.type===t?C.ink:C.rule),borderRadius:2,...T.label,fontSize:10,color:form.type===t?C.ink:C.muted}}>${t}</button>
+          `)}
+        </div>
+      </div>
+      <div>
+        <${Lbl}>Work style</${Lbl}>
+        <div style=${{display:"flex",gap:8,marginTop:4}}>
+          ${["Remote","Hybrid","In-office"].map(t=>html`
+            <button key=${t} onClick=${()=>setForm(f=>({...f,remote:t}))} style=${{flex:1,padding:"10px",background:"transparent",border:"1px solid "+(form.remote===t?C.ink:C.rule),borderRadius:2,...T.label,fontSize:10,color:form.remote===t?C.ink:C.muted}}>${t}</button>
+          `)}
+        </div>
+      </div>
+      <div>
+        <${Lbl}>Culture</${Lbl}>
+        <textarea value=${form.culture} onInput=${e=>setForm(f=>({...f,culture:e.target.value}))} rows=${3} placeholder="What makes your company a place where people want to stay?"
+          style=${{width:"100%",padding:"13px 0",background:"transparent",border:"none",borderBottom:"1px solid "+C.rule,...T.body,fontSize:14,color:C.ink,outline:"none",resize:"none",lineHeight:1.6,boxSizing:"border-box"}}></textarea>
+      </div>
+      <div>
+        <${Lbl}>Currently hiring</${Lbl}>
+        <div style=${{display:"flex",flexWrap:"wrap",gap:8,marginTop:8}}>
+          ${hiringOpts.map(r=>html`
+            <button key=${r} onClick=${()=>toggle(r)} style=${{padding:"8px 14px",background:form.hiring.includes(r)?C.ink:"transparent",border:"1px solid "+(form.hiring.includes(r)?C.ink:C.rule),borderRadius:2,...T.label,fontSize:10,color:form.hiring.includes(r)?C.white:C.muted}}>${r}</button>
+          `)}
+        </div>
+      </div>
+    </div>
+    <div style=${{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:390,padding:"16px 24px 32px",background:C.white,borderTop:"1px solid "+C.rule}}>
+      <${PrimaryBtn} onClick=${()=>setStep("pricing")} disabled=${!form.name.trim()}>Continue to pricing</${PrimaryBtn}>
+    </div>
+  </div>`;
+  return html`<${PricingPage} onSelect=${tier=>{onSelectTier(tier);}} currentTier=${null} onBack=${()=>setStep("build")}/>`;
+}
+
+// COMPANY DASHBOARD
+function CompanyDashboard({screen,setScreen,pipeline,setChatParty,setSchedParty,setShowSched,planTier,onUpgrade}) {
+  const stages = [
+    {key:"new",label:"New matches",items:pipeline.filter(c=>c.status==="new")},
+    {key:"interested",label:"In conversation",items:pipeline.filter(c=>c.status==="interested")},
+    {key:"interview",label:"Interview set",items:pipeline.filter(c=>c.status==="interview")},
+  ];
+  return html`<div style=${{paddingBottom:80,minHeight:"100vh",background:C.ground,maxWidth:390,margin:"0 auto"}}>
+    <div style=${{background:C.slate,padding:"52px 24px 28px"}}>
+      <div style=${{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24}}>
+        <div>
+          <div style=${{...T.label,fontSize:10,color:"rgba(255,255,255,.35)",marginBottom:6}}>Hiring Dashboard</div>
+          <div style=${{...T.heading,fontSize:20,color:C.white}}>Pinnacle Mortgage</div>
+        </div>
+        <button onClick=${()=>setScreen("pricing")} style=${{background:"transparent",border:"1px solid rgba(255,255,255,.2)",padding:"7px 12px",borderRadius:2,...T.label,fontSize:9,color:"rgba(255,255,255,.6)"}}>
+          ${planTier==="free"?"Free Plan":"Growth Plan"}
+        </button>
+      </div>
+      <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:1,background:"rgba(255,255,255,.08)"}}>
+        ${[{l:"New",v:pipeline.filter(c=>c.status==="new").length},{l:"Talking",v:pipeline.filter(c=>c.status==="interested").length},{l:"Interview",v:pipeline.filter(c=>c.status==="interview").length}].map(s=>html`
+          <div key=${s.l} style=${{padding:"16px 12px",textAlign:"center"}}>
+            <div style=${{...T.display,fontSize:28,color:C.white}}>${s.v}</div>
+            <div style=${{...T.label,fontSize:9,color:"rgba(255,255,255,.4)",marginTop:3}}>${s.l.toUpperCase()}</div>
+          </div>
+        `)}
+      </div>
+      ${planTier==="free"&&pipeline.filter(c=>c.status==="new").length>0?html`
+        <div onClick=${()=>onUpgrade()} style=${{marginTop:16,padding:"12px 14px",borderLeft:"2px solid "+C.coral,cursor:"pointer"}}>
+          <div style=${{...T.body,fontSize:13,color:C.white}}>${pipeline.filter(c=>c.status==="new").length} candidates are interested. <span style=${{color:C.coral}}>Upgrade to connect &#8594;</span></div>
+        </div>
+      `:""}
+    </div>
+    <div style=${{padding:"0 24px"}}>
+      ${stages.map(stage=>html`
+        <div key=${stage.key} style=${{paddingTop:24,paddingBottom:8}}>
+          <div style=${{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+            <div style=${{...T.label,fontSize:10,color:C.muted}}>${stage.label.toUpperCase()}</div>
+            <div style=${{...T.label,fontSize:10,color:C.coral}}>${stage.items.length}</div>
+          </div>
+          ${stage.items.length===0?html`
+            <div style=${{padding:"20px 0",borderTop:"1px solid "+C.rule}}>
+              <div style=${{...T.caption,fontSize:13,color:C.muted}}>No candidates here yet</div>
+            </div>
+          `:stage.items.map(c=>html`
+            <div key=${c.id} style=${{paddingTop:16,paddingBottom:16,borderTop:"1px solid "+C.rule}}>
+              <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:8}}>
+                <div>
+                  <div style=${{...T.subhead,fontSize:15,color:C.ink,marginBottom:2}}>${c.alias}</div>
+                  <div style=${{...T.caption,fontSize:12,color:C.muted}}>${c.role} - ${c.exp} - ${c.style}</div>
+                </div>
+                <div style=${{...T.label,fontSize:9,color:c.status==="interview"?C.teal:c.status==="interested"?C.coral:C.muted,background:c.status==="interview"?C.tealSoft:c.status==="interested"?C.coralSoft:C.groundAlt,padding:"4px 9px",borderRadius:1,flexShrink:0,marginLeft:12}}>${c.status.toUpperCase()}</div>
+              </div>
+              <div style=${{...T.caption,fontSize:12,color:C.muted,marginBottom:12}}>${c.volume} - ${c.comp} target</div>
+              ${planTier==="free"?html`
+                <button onClick=${()=>onUpgrade()} style=${{width:"100%",padding:"11px",background:"transparent",border:"1px solid "+C.coral,borderRadius:2,...T.label,fontSize:10,color:C.coral}}>Upgrade to connect &#8594;</button>
+              `:html`
+                <div style=${{display:"flex",gap:8}}>
+                  <button onClick=${()=>setChatParty(c)} style=${{flex:1,padding:"10px",background:"transparent",border:"1px solid "+C.rule,borderRadius:2,...T.label,fontSize:10,color:C.ink}}>Chat</button>
+                  <button onClick=${()=>{setSchedParty(c);setShowSched(true);}} style=${{flex:1,padding:"10px",background:C.coral,border:"none",borderRadius:2,...T.label,fontSize:10,color:C.white}}>Schedule</button>
+                </div>
+              `}
+            </div>
+          `)}
+        </div>
+      `)}
+    </div>
+    <${CompanyNav} screen=${screen} setScreen=${setScreen}/>
+  </div>`;
+}
+
+// ROOT APP
+function App() {
+  const [screen,setScreen] = useState("home");
+  const [role,setRole] = useState(null);
+  const [anonMode,setAnonMode] = useState(true);
+  const [cardIdx,setCardIdx] = useState(0);
+  const [matches,setMatches] = useState([]);
+  const [showMatch,setShowMatch] = useState(null);
+  const [interviews,setInterviews] = useState([{id:"iv1",party:{name:"Pinnacle Mortgage",type:"Independent Broker"},slot:"Mon Jun 30 - 9:00 AM",zoom:"https://zoom.us/j/123456789",confirmedAt:"2 days ago"}]);
+  const [candIdx,setCandIdx] = useState(0);
+  const [pipeline,setPipeline] = useState([{...CANDIDATES[0],status:"interested"},{...CANDIDATES[2],status:"interview"}]);
+  const [chatParty,setChatParty] = useState(null);
+  const [schedParty,setSchedParty] = useState(null);
+  const [showSched,setShowSched] = useState(false);
+  const [planTier,setPlanTier] = useState("free");
+  const deck = COMPANIES.slice(cardIdx);
+
+  const seekerSwipe = dir => {
+    const co = deck[0];if(!co)return;
+    if(dir==="right"){setMatches(m=>[...m,co]);setShowMatch(co);}
+    setCardIdx(i=>i+1);
+  };
+  const companySwipe = (dir,c) => {
+    if(dir==="right"){
+      if(planTier==="free"){setPipeline(p=>[...p,{...c,status:"new"}]);setShowMatch(c);}
+      else{setPipeline(p=>[...p,{...c,status:"interested"}]);setShowMatch(c);}
+    }
+    setCandIdx(i=>i+1);
+  };
+  const selectTier = tier => {setPlanTier(tier.id);if(role==="company")setScreen("co-dashboard");};
+  const upgrade = () => setScreen("pricing");
+
+  if(chatParty)return html`<div style=${{maxWidth:390,margin:"0 auto"}}><${ChatScreen} party=${chatParty} onBack=${()=>setChatParty(null)} onSchedule=${p=>{setChatParty(null);setSchedParty(p);setShowSched(true);}} isCompany=${role==="company"}/></div>`;
+  if(screen==="pricing")return html`<div style=${{maxWidth:390,margin:"0 auto",minHeight:"100vh"}}><${PricingPage} onSelect=${selectTier} currentTier=${planTier} onBack=${()=>setScreen(role==="company"?"co-dashboard":"swipe")}/></div>`;
+
+  return html`<div style=${{maxWidth:390,margin:"0 auto",minHeight:"100vh",background:C.ground}}>
+    ${screen==="home"?html`<${HomeScreen} setScreen=${setScreen} setRole=${setRole}/>`:""}
+    ${screen==="seeker-onboard"?html`<${SeekerOnboard} setScreen=${setScreen} anonMode=${anonMode} setAnonMode=${setAnonMode}/>`:""}
+    ${screen==="company-onboard"?html`<${CompanyOnboard} setScreen=${setScreen} onSelectTier=${selectTier}/>`:""}
+
+    ${screen==="swipe"?html`
+      <div style=${{display:"flex",flexDirection:"column",paddingBottom:80,minHeight:"100vh",background:C.ground}}>
+        <div style=${{padding:"52px 24px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style=${{display:"flex",alignItems:"center",gap:8}}>
+            <div style=${{width:18,height:18,background:C.coral,borderRadius:1}}></div>
+            <div style=${{...T.label,fontSize:12,color:C.ink,letterSpacing:"0.1em"}}>LOCKIN</div>
+          </div>
+          <div style=${{...T.label,fontSize:9,color:anonMode?C.coral:C.muted}}>${anonMode?"Anon Mode":"Public"}</div>
+        </div>
+        <div style=${{flex:1,position:"relative",margin:"0 20px",height:555}}>
+          ${deck.length===0?html`
+            <div style=${{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",textAlign:"center",padding:32}}>
+              <div style=${{...T.display,fontSize:32,color:C.ink,marginBottom:8,lineHeight:1}}>You've seen everyone.</div>
+              <button onClick=${()=>setScreen("matches")} style=${{padding:"12px 24px",background:C.coral,color:C.white,border:"none",borderRadius:2,...T.label,fontSize:11,marginTop:16}}>See My Matches (${matches.length})</button>
+            </div>
+          `:deck.slice(0,2).reverse().map((co,i)=>html`
+            <${SwipeCard} key=${co.id+"-"+i} co=${co} isTop=${i===Math.min(deck.length,2)-1} onSwipe=${seekerSwipe}/>
+          `)}
+        </div>
+        ${deck.length>0?html`
+          <div style=${{display:"flex",justifyContent:"center",alignItems:"center",gap:20,padding:"14px 0 6px"}}>
+            <button onClick=${()=>seekerSwipe("left")} style=${{width:54,height:54,borderRadius:"50%",background:C.white,border:"1px solid "+C.rule,fontSize:22,color:C.error}}>&#215;</button>
+            <button onClick=${()=>seekerSwipe("right")} style=${{width:64,height:64,borderRadius:"50%",background:C.coral,border:"none",fontSize:26,color:C.white,boxShadow:"0 4px 20px rgba(217,95,59,.4)"}}>&#9829;</button>
+            <button style=${{width:54,height:54,borderRadius:"50%",background:C.white,border:"1px solid "+C.rule,fontSize:22,color:C.muted}}>&#9733;</button>
+          </div>
+        `:""}
+        <${SeekerNav} screen=${screen} setScreen=${setScreen} matchCount=${matches.length}/>
+        ${showMatch?html`<${MatchModal} party=${showMatch} isCompany=${false} planTier=${planTier} onUpgrade=${upgrade} onChat=${p=>{setShowMatch(null);setChatParty(p);}} onSchedule=${p=>{setShowMatch(null);setSchedParty(p);setShowSched(true);}} onClose=${()=>setShowMatch(null)}/>`:""}
+        ${showSched&&schedParty?html`<${ScheduleModal} party=${schedParty} onClose=${()=>{setShowSched(false);setSchedParty(null);}} onConfirm=${iv=>setInterviews(prev=>[{id:"iv-"+Date.now(),...iv},...prev])}/>`:""}
+      </div>
+    `:""}
+
+    ${screen==="matches"?html`
+      <div style=${{paddingBottom:80,minHeight:"100vh",background:C.ground}}>
+        <div style=${{padding:"52px 24px 20px"}}>
+          <div style=${{...T.label,fontSize:10,color:C.coral,marginBottom:10}}>Matches</div>
+          <div style=${{...T.display,fontSize:36,color:C.ink,lineHeight:1,marginBottom:4}}>${matches.length>0?matches.length+" interested.":"No matches yet."}</div>
+        </div>
+        ${interviews.length>0?html`
+          <div style=${{padding:"0 24px 20px",borderBottom:"1px solid "+C.rule}}>
+            <div style=${{...T.label,fontSize:10,color:C.muted,marginBottom:14}}>Upcoming Interviews - ${interviews.length}</div>
+            ${interviews.map(iv=>html`
+              <div key=${iv.id} style=${{background:C.slate,borderRadius:2,padding:"18px 20px",marginBottom:10}}>
+                <div style=${{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+                  <div>
+                    <div style=${{...T.display,fontSize:20,color:C.white,lineHeight:1,marginBottom:4}}>${iv.slot}</div>
+                    <div style=${{...T.caption,fontSize:12,color:"rgba(255,255,255,.45)"}}>Confirmed ${iv.confirmedAt}</div>
+                  </div>
+                  <div style=${{...T.label,fontSize:9,color:C.teal,background:"rgba(30,127,116,.2)",padding:"4px 9px",borderRadius:1,border:"1px solid rgba(30,127,116,.3)"}}>Scheduled</div>
+                </div>
+                <div style=${{...T.subhead,fontSize:14,color:C.white,marginBottom:14}}>${iv.party.name||iv.party.alias}</div>
+                <div style=${{display:"flex",gap:8}}>
+                  <a href=${iv.zoom} style=${{flex:1,padding:"10px",background:C.teal,border:"none",borderRadius:2,...T.label,fontSize:10,color:C.white,textAlign:"center",textDecoration:"none",display:"block"}}>Join Zoom &#8594;</a>
+                  <button style=${{flex:1,padding:"10px",background:"rgba(255,255,255,.08)",border:"1px solid rgba(255,255,255,.12)",borderRadius:2,...T.label,fontSize:10,color:"rgba(255,255,255,.6)"}}>Reschedule</button>
+                </div>
+              </div>
+            `)}
+          </div>
+        `:""}
+        <div style=${{padding:"0 24px"}}>
+          ${matches.length===0?html`
+            <div style=${{padding:"40px 0",textAlign:"center"}}>
+              <div style=${{...T.body,fontSize:14,color:C.muted}}>Keep discovering — your next chapter is out there.</div>
+            </div>
+          `:matches.map(co=>html`
+            <div key=${co.id} style=${{paddingTop:20,paddingBottom:20,borderBottom:"1px solid "+C.rule}}>
+              <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:8}}>
+                <div>
+                  <div style=${{...T.subhead,fontSize:16,color:C.ink,marginBottom:3}}>${co.name}</div>
+                  <div style=${{...T.caption,fontSize:12,color:C.muted}}>${co.type} - ${co.remote}</div>
+                </div>
+                <div style=${{...T.label,fontSize:9,color:C.coral,background:C.coralSoft,padding:"4px 9px",borderRadius:1,flexShrink:0,marginLeft:12}}>Matched</div>
+              </div>
+              <p style=${{...T.body,fontSize:13,color:C.body,fontStyle:"italic",marginBottom:14,lineHeight:1.5}}>"${co.topReview}"</p>
+              <div style=${{display:"flex",gap:8}}>
+                <button onClick=${()=>setChatParty(co)} style=${{flex:1,padding:"10px",background:"transparent",border:"1px solid "+C.rule,borderRadius:2,...T.label,fontSize:10,color:C.ink}}>Chat</button>
+                <button onClick=${()=>{setSchedParty(co);setShowSched(true);}} style=${{flex:1,padding:"10px",background:C.coral,border:"none",borderRadius:2,...T.label,fontSize:10,color:C.white}}>Schedule</button>
+              </div>
+            </div>
+          `)}
+        </div>
+        <${SeekerNav} screen=${screen} setScreen=${setScreen} matchCount=${matches.length}/>
+        ${showSched&&schedParty?html`<${ScheduleModal} party=${schedParty} onClose=${()=>{setShowSched(false);setSchedParty(null);}} onConfirm=${iv=>setInterviews(prev=>[{id:"iv-"+Date.now(),...iv},...prev])}/>`:""}
+      </div>
+    `:""}
+
+    ${screen==="community"?html`<${CommunityScreen} screen=${screen} setScreen=${setScreen} matchCount=${matches.length}/>`:""}
+
+    ${screen==="profile"?html`
+      <div style=${{paddingBottom:80,minHeight:"100vh",background:C.ground}}>
+        <div style=${{background:C.slate,padding:"52px 24px 28px"}}>
+          <div style=${{...T.label,fontSize:10,color:"rgba(255,255,255,.35)",marginBottom:10}}>Profile</div>
+          <div style=${{...T.display,fontSize:34,color:C.white,lineHeight:1,marginBottom:12}}>${anonMode?"Senior LO, Midwest":"Jordan Rivera"}</div>
+          <div style=${{...T.caption,fontSize:13,color:"rgba(255,255,255,.5)"}}>${anonMode?"NMLS hidden - Multiple states":"NMLS #1847302 - IL, WI, IN, MN"}</div>
+        </div>
+        <div style=${{padding:"0 24px"}}>
+          <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 0",borderBottom:"1px solid "+C.rule}}>
+            <div>
+              <div style=${{...T.subhead,fontSize:14,color:C.ink,marginBottom:3}}>${anonMode?"Anonymity Mode - On":"Public Profile"}</div>
+              <div style=${{...T.caption,fontSize:12,color:C.muted}}>${anonMode?"Name and employer hidden":"Full profile visible"}</div>
+            </div>
+            <button onClick=${()=>setAnonMode(a=>!a)} style=${{padding:"8px 14px",background:anonMode?C.coral:"transparent",border:"1px solid "+(anonMode?C.coral:C.rule),borderRadius:2,...T.label,fontSize:10,color:anonMode?C.white:C.muted}}>${anonMode?"On":"Off"}</button>
+          </div>
+          ${[["Role","Senior Loan Officer"],["Experience","7 years"],["Monthly Volume","$3.2M"],["Comp Target","75%+ split"],["Work Style","Remote preferred"]].map(([l,v])=>html`
+            <div key=${l} style=${{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 0",borderBottom:"1px solid "+C.rule}}>
+              <div style=${{...T.label,fontSize:10,color:C.muted}}>${l.toUpperCase()}</div>
+              <div style=${{...T.subhead,fontSize:14,color:C.ink}}>${v}</div>
+            </div>
+          `)}
+        </div>
+        <${SeekerNav} screen=${screen} setScreen=${setScreen} matchCount=${matches.length}/>
+      </div>
+    `:""}
+
+    ${screen==="co-browse"?html`
+      <div style=${{display:"flex",flexDirection:"column",paddingBottom:80,minHeight:"100vh",background:C.ground}}>
+        <div style=${{padding:"52px 24px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style=${{...T.heading,fontSize:18,color:C.ink}}>Candidates</div>
+          <div style=${{...T.label,fontSize:9,color:C.muted}}>${CANDIDATES.slice(candIdx).length} remaining</div>
+        </div>
+        <div style=${{flex:1,position:"relative",margin:"0 20px",height:565}}>
+          ${CANDIDATES.slice(candIdx).length===0?html`
+            <div style=${{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",textAlign:"center",padding:32}}>
+              <div style=${{...T.display,fontSize:30,color:C.ink,marginBottom:8,lineHeight:1}}>You've seen everyone.</div>
+              <button onClick=${()=>setScreen("co-dashboard")} style=${{padding:"12px 24px",background:C.coral,color:C.white,border:"none",borderRadius:2,...T.label,fontSize:11,marginTop:16}}>Go to Dashboard</button>
+            </div>
+          `:CANDIDATES.slice(candIdx,candIdx+2).reverse().map((c,i)=>html`
+            <${CandidateCard} key=${c.id+"-"+i} c=${c} isTop=${i===Math.min(CANDIDATES.slice(candIdx).length,2)-1} onSwipe=${companySwipe}/>
+          `)}
+        </div>
+        ${CANDIDATES.slice(candIdx).length>0?html`
+          <div style=${{display:"flex",justifyContent:"center",alignItems:"center",gap:20,padding:"14px 0 6px"}}>
+            <button onClick=${()=>companySwipe("left",CANDIDATES[candIdx])} style=${{width:54,height:54,borderRadius:"50%",background:C.white,border:"1px solid "+C.rule,fontSize:22,color:C.error}}>&#215;</button>
+            <button onClick=${()=>companySwipe("right",CANDIDATES[candIdx])} style=${{width:64,height:64,borderRadius:"50%",background:C.coral,border:"none",fontSize:26,color:C.white,boxShadow:"0 4px 20px rgba(217,95,59,.4)"}}>&#9829;</button>
+            <button style=${{width:54,height:54,borderRadius:"50%",background:C.white,border:"1px solid "+C.rule,fontSize:22,color:C.muted}}>&#9733;</button>
+          </div>
+        `:""}
+        <${CompanyNav} screen=${screen} setScreen=${setScreen}/>
+        ${showMatch?html`<${MatchModal} party=${showMatch} isCompany=${true} planTier=${planTier} onUpgrade=${upgrade} onChat=${p=>{setShowMatch(null);setChatParty(p);}} onSchedule=${p=>{setShowMatch(null);setSchedParty(p);setShowSched(true);}} onClose=${()=>setShowMatch(null)}/>`:""}
+        ${showSched&&schedParty?html`<${ScheduleModal} party=${schedParty} onClose=${()=>{setShowSched(false);setSchedParty(null);}} onConfirm=${iv=>setInterviews(prev=>[{id:"iv-"+Date.now(),...iv},...prev])}/>`:""}
+      </div>
+    `:""}
+
+    ${screen==="co-dashboard"?html`<${CompanyDashboard} screen=${screen} setScreen=${setScreen} pipeline=${pipeline} setChatParty=${setChatParty} setSchedParty=${setSchedParty} setShowSched=${setShowSched} planTier=${planTier} onUpgrade=${upgrade}/>`:""}
+
+    ${screen==="co-profile"?html`
+      <div style=${{paddingBottom:80,minHeight:"100vh",background:C.ground}}>
+        <div style=${{background:C.slate,padding:"52px 24px 28px"}}>
+          <div style=${{...T.label,fontSize:10,color:"rgba(255,255,255,.35)",marginBottom:10}}>Company</div>
+          <div style=${{...T.display,fontSize:34,color:C.white,lineHeight:1,marginBottom:8}}>Pinnacle Mortgage</div>
+          <div style=${{...T.caption,fontSize:13,color:"rgba(255,255,255,.45)"}}>Independent Broker - Verified</div>
+          <div onClick=${()=>setScreen("pricing")} style=${{marginTop:16,padding:"10px 14px",border:"1px solid rgba(255,255,255,.15)",borderRadius:2,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style=${{...T.body,fontSize:13,color:"rgba(255,255,255,.6)"}}>${planTier==="free"?"Free Plan - Upgrade to connect":"Growth Plan - $9.99/mo"}</div>
+            <div style=${{...T.label,fontSize:10,color:C.coral}}>Manage &#8594;</div>
+          </div>
+        </div>
+        <div style=${{padding:"0 24px"}}>
+          <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:1,background:C.rule,marginBottom:1}}>
+            ${[{l:"Views",v:"847"},{l:"Matches",v:pipeline.length},{l:"Interviews",v:pipeline.filter(c=>c.status==="interview").length},{l:"Roles",v:"3"}].map(s=>html`
+              <div key=${s.l} style=${{padding:"20px 16px",background:C.ground}}>
+                <div style=${{...T.display,fontSize:28,color:C.ink,marginBottom:4}}>${s.v}</div>
+                <div style=${{...T.label,fontSize:9,color:C.muted}}>${s.l.toUpperCase()}</div>
+              </div>
+            `)}
+          </div>
+        </div>
+        <${CompanyNav} screen=${screen} setScreen=${setScreen}/>
+      </div>
+    `:""}
+
+    ${showSched&&schedParty&&!["swipe","co-browse","matches"].includes(screen)?html`<${ScheduleModal} party=${schedParty} onClose=${()=>{setShowSched(false);setSchedParty(null);}} onConfirm=${iv=>setInterviews(prev=>[{id:"iv-"+Date.now(),...iv},...prev])}/>`:""}
+  </div>`;
+}
+
+render(html`<${App}/>`, document.getElementById('app'));
+</script>
+</body>
+</html>
